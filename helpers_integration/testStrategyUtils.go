@@ -66,7 +66,7 @@ func newTestTransferStrategy() helpers.WriteTransferStrategy {
 
 // Creates a simple blob strategy for testing
 func newTestBlobStrategy() *helpers.SimpleBlobStrategy {
-    var delay time.Duration = time.Second * 5
+    var delay = time.Second * 5
     var maxTransferGoroutines uint = 5
     return &helpers.SimpleBlobStrategy{Delay:delay, MaxConcurrentTransfers:maxTransferGoroutines}
 }

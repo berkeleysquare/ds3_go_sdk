@@ -1,6 +1,7 @@
 package helpers_integration
 
 import (
+    "bytes"
     "testing"
     "log"
     "os"
@@ -214,4 +215,108 @@ func TestGetBulkPartialObjectRandomAccess(t *testing.T) {
     testutils.VerifyPartialFile(t, LargeBookPath + LargeBookTitle, 101, 0, file)
     testutils.VerifyPartialFile(t, LargeBookPath + LargeBookTitle, 201, 200, file)
     testutils.VerifyPartialFile(t, LargeBookPath + LargeBookTitle, 101, 500, file)
+}
+
+func TestGettingBlobbedFile(t *testing.T) {
+    defer testutils.DeleteBucketContents(client, testBucket)
+
+    filePath, err := writeAFileThatWillGetBlobbed()
+    ds3Testing.AssertNilError(t, err)
+
+    defer os.Remove(filePath)
+
+    putObject, err := getTestWriteObjectStreamAccess(filePath, filePath)
+    ds3Testing.AssertNilError(t, err)
+
+    helper := helpers.NewHelpers(client)
+
+    err = helper.PutObjects(testBucket, []helperModels.PutObject{*putObject}, newTestTransferStrategy())
+    ds3Testing.AssertNilError(t, err)
+
+    renamedOriginalFile := filePath + ".orig"
+    err = os.Rename(filePath, renamedOriginalFile)
+    ds3Testing.AssertNilError(t, err)
+
+    defer os.Remove(renamedOriginalFile)
+
+    readObjects := []helperModels.GetObject {
+        {Name: filePath, ChannelBuilder: channels.NewWriteChannelBuilder(filePath)},
+    }
+
+    strategy := helpers.ReadTransferStrategy{
+        Options: helpers.ReadBulkJobOptions{},
+        BlobStrategy: newTestBlobStrategy(),
+    }
+
+    err = helper.GetObjects(testBucket, readObjects, strategy)
+    ds3Testing.AssertNilError(t, err)
+
+    ds3Testing.AssertBool(t, "files have different content", true, filesAreTheSame(filePath, renamedOriginalFile))
+}
+
+func writeAFileThatWillGetBlobbed() (filePath string, err error) {
+    filePath = "aBlobbedFile"
+
+    file, err := os.Create(filePath)
+    if err != nil {
+        return
+    }
+
+    defer file.Close()
+
+    biggerThanAChunkSize := helpers.MinUploadSize * 2 + 1024
+
+    numIntsInBiggerThanAChunkSize := biggerThanAChunkSize / 4
+
+    dataArray := make([]byte, 4)
+
+    for i := int64(0); i < numIntsInBiggerThanAChunkSize; i++ {
+        dataArray[0] = byte(i)
+        dataArray[1] = byte(i >> 8)
+        dataArray[2] = byte(i >> 16)
+        dataArray[3] = byte(i >> 24)
+
+        _, err = file.Write(dataArray)
+        if err != nil {
+            return
+        }
+    }
+
+    return
+}
+
+const chunkSize = 64000
+
+func filesAreTheSame(file1, file2 string) bool {
+    f1, err := os.Open(file1)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    f2, err := os.Open(file2)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    for {
+        b1 := make([]byte, chunkSize)
+        _, err1 := f1.Read(b1)
+
+        b2 := make([]byte, chunkSize)
+        _, err2 := f2.Read(b2)
+
+        if err1 != nil || err2 != nil {
+            if err1 == io.EOF && err2 == io.EOF {
+                return true
+            } else if err1 == io.EOF || err2 == io.EOF {
+                return false
+            } else {
+                log.Fatal(err1, err2)
+            }
+        }
+
+        if !bytes.Equal(b1, b2) {
+            return false
+        }
+    }
 }
