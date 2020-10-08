@@ -10,12 +10,48 @@ import (
 
 func headObject(client *ds3.Client, args *Arguments) error {
     // Validate the arguments.
-    if args.Bucket == "" {
-        return errors.New("Must specify a bucket.")
+    if args.Bucket == "" && args.Tape == "" {
+        return errors.New("Must specify bucket or tape.")
     }
     bucket := args.Bucket
     key := args.Key
-    if key == "" {
+    tape := args.Tape
+
+    if tape != "" {
+        // do whole tape
+        more := true
+        totalObjects := 0
+        for marker := ""; more; {
+            request := models.NewGetBlobsOnTapeSpectraS3Request(args.Tape)
+            if len(marker) > 0 {
+                request.PageStartMarker = &marker
+            }
+
+            response, err := client.GetBlobsOnTapeSpectraS3(request)
+            if err != nil {
+                return fmt.Errorf("Could not get blobs for tape %s\n%v", args.Tape, err)
+            }
+
+            objects := response.BulkObjectList.Objects
+
+            for _, object := range objects {
+                err = processHeadObject(client, *object.Bucket, *object.Name)
+                if err != nil {
+                    return fmt.Errorf("Failed head_object for Bucket %s, key %s\n%v",
+                        *object.Bucket, *object.Name, err)
+                }
+            }
+
+            totalObjects += len(objects)
+            // GoSDK pagination decorators not implemented in GetBlobsOnTapeSpectraS3()
+            // get next page id count == 1000
+            more = len(objects) >= 1000
+            marker = *objects[len(objects) - 1].Id
+            fmt.Printf("Count: %d, marker: %s, more: %t\n", totalObjects, marker, more)
+        }
+        fmt.Printf("Accessed %d objects\n", totalObjects)
+        return nil
+    } else if key == "" {
         // do whole bucket
         request:= models.NewGetBucketRequestWithPrefix(bucket, args.KeyPrefix)
         response, err := client.GetBucket(request)

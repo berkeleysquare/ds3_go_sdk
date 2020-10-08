@@ -13,6 +13,11 @@ func main() {
         log.Fatal(argsErr)
     }
 
+    if args.Command == "list_commands" {
+        commands.ListCommands(args)
+        return
+    }
+
     // Build the client.
     client, clientErr := buildclient.FromArgs(args)
     if clientErr != nil {

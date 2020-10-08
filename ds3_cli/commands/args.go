@@ -17,6 +17,9 @@ type Arguments struct {
     MaxKeys int
     Start, End int
     NumThreads, NumFiles, FileSize int
+    Tape string
+    User string
+    DataPolicy string
 }
 
 func ParseArgs() (*Arguments, error) {
@@ -25,7 +28,7 @@ func ParseArgs() (*Arguments, error) {
     accessKeyParam := flag.String("access_key", "", "Specifies the access_key for the DS3 user.")
     secretKeyParam := flag.String("secret_key", "", "Specifies the secret_key for the DS3 user.")
     proxyParam := flag.String("proxy", "", "Specifies the HTTP proxy to route through.")
-    commandParam := flag.String("command", "", "The HTTP call to execute.")
+    commandParam := flag.String("command", "list_commands", "The HTTP call to execute.")
     bucketParam := flag.String("bucket", "", "The name of the bucket to constrict the request to.")
     keyParam := flag.String("key", "", "The key for the object to get.")
     keyPrefixParam := flag.String("prefix", "", "The key prefix by which to constrain the results.")
@@ -35,6 +38,9 @@ func ParseArgs() (*Arguments, error) {
     perfThreadsParam := flag.Int("num_threads", 0, "Number of threads for performance test.")
     perfFilesParam := flag.Int("num_files", 0, "Number of files per thread for performance test.")
     perfSizeParam := flag.Int("file_size", 0, "File size in MB for performance test.")
+    tapeParam := flag.String("tape", "", "Tape ID or Barcode.")
+    userParam := flag.String("user", "", "Lookup User.")
+    policyParam := flag.String("data_policy", "", "Data Policy")
     flag.Parse()
 
     // Build the arguments object.
@@ -53,6 +59,9 @@ func ParseArgs() (*Arguments, error) {
         NumThreads: *perfThreadsParam,
         NumFiles: *perfFilesParam,
         FileSize: *perfSizeParam,
+        Tape: *tapeParam,
+        User: *userParam,
+        DataPolicy: *policyParam,
     }
 
     // Validate required arguments.
