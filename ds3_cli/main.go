@@ -10,6 +10,10 @@ func main() {
     // Parse the arguments.
     args, argsErr := commands.ParseArgs()
     if argsErr != nil {
+        if argsErr.Error() == "Must specify a command." {
+            commands.ListCommands(args)
+            return
+        }
         log.Fatal(argsErr)
     }
 

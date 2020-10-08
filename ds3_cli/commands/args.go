@@ -28,7 +28,7 @@ func ParseArgs() (*Arguments, error) {
     accessKeyParam := flag.String("access_key", "", "Specifies the access_key for the DS3 user.")
     secretKeyParam := flag.String("secret_key", "", "Specifies the secret_key for the DS3 user.")
     proxyParam := flag.String("proxy", "", "Specifies the HTTP proxy to route through.")
-    commandParam := flag.String("command", "list_commands", "The HTTP call to execute.")
+    commandParam := flag.String("command", "", "The HTTP call to execute.")
     bucketParam := flag.String("bucket", "", "The name of the bucket to constrict the request to.")
     keyParam := flag.String("key", "", "The key for the object to get.")
     keyPrefixParam := flag.String("prefix", "", "The key prefix by which to constrain the results.")
@@ -66,10 +66,10 @@ func ParseArgs() (*Arguments, error) {
 
     // Validate required arguments.
     switch {
+        case args.Command == "": return nil, errors.New("Must specify a command.")
         case args.Endpoint == "": return nil, errors.New("Must specify an endpoint.")
         case args.AccessKey == "": return nil, errors.New("Must specify an access key.")
         case args.SecretKey == "": return nil, errors.New("Must specify an secret key.")
-        case args.Command == "": return nil, errors.New("Must specify a command.")
         default: return &args, nil
     }
 }
